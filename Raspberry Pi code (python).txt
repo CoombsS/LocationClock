@@ -1,0 +1,40 @@
+import serial
+from pymongo import MongoClient
+import time
+
+# Connect to MongoDB
+client = MongoClient('localhost', 27017)
+db = client["magicClock"]
+collection = db["Locations1"]
+
+# Initialize serial communication for GPS module
+gps_serial = serial.Serial('/dev/ttyUSB0', 9600)  # Replace with appropriate serial port and baud rate
+
+def read_gps_data():
+    # Read data from GPS module
+    gps_data = gps_serial.readline().decode('utf-8')  # Read a line of data from GPS
+
+    # Parse GPS data to extract latitude and longitude (example parsing logic)
+    # Assuming the data format is NMEA and latitude/longitude are in specific positions
+    parsed_data = gps_data.split(',')
+    if parsed_data[0] == '$GPGGA':  # Example NMEA sentence for GPS data
+        latitude = parsed_data[2]
+        longitude = parsed_data[4]
+        return latitude, longitude
+    else:
+        return None, None  # Return None if GPS data doesn't match expected format
+
+def update_mongodb(latitude, longitude):
+    if latitude and longitude:
+        # Update MongoDB collection with new GPS coordinates
+        collection.update_one({'Name': 'Skyler'}, {'$set': {'Latitude': latitude, 'Longitude': longitude}})
+        print("Updated MongoDB with Latitude:", latitude, "Longitude:", longitude)
+
+while True:
+    # Read GPS data
+    lat, lon = read_gps_data()
+
+    # Update MongoDB with GPS coordinates
+    update_mongodb(lat, lon)
+
+    time.sleep(45)  # Wait for 45 seconds before updating location again
